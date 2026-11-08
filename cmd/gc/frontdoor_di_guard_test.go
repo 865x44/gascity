@@ -466,8 +466,11 @@ func TestSessionRelocationRootsRouteThroughSessionClassStore(t *testing.T) {
 				t.Errorf("%s contains unrouted session front door %q — this CLI root must route its session-class access through cliSessionFrontDoor(store, cfg, cityPath) / cliSessionStore(...) so a [beads.classes.sessions] relocation reaches it", name, needle)
 			}
 		}
-		if !strings.Contains(content, "cliSessionStore(") && !strings.Contains(content, "cliSessionFrontDoor(") {
-			t.Errorf("%s is listed as session-relocation-routed but never calls cliSessionStore( / cliSessionFrontDoor( — did the routing get dropped?", name)
+		// The verify-only doors route through the observation twins, which
+		// resolve the same session class under the observation boot gate.
+		if !strings.Contains(content, "cliSessionStore(") && !strings.Contains(content, "cliSessionFrontDoor(") &&
+			!strings.Contains(content, "observationSessionStore(") && !strings.Contains(content, "observationSessionFrontDoor(") {
+			t.Errorf("%s is listed as session-relocation-routed but never calls cliSessionStore( / cliSessionFrontDoor( (or their observation twins) — did the routing get dropped?", name)
 		}
 	}
 }
@@ -498,8 +501,10 @@ func TestGraphRelocationRootsRouteThroughGraphClassStore(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ReadFile(%q): %v", path, err)
 		}
-		if !strings.Contains(string(data), "cliGraphStore(") {
-			t.Errorf("%s is listed as graph-relocation-routed but never calls cliGraphStore( — did the routing get dropped? A graph read left on the work store returns empty on a migrated city and reports success", name)
+		// wisp_step_inject.go is a verify-only door: it takes the graph leg of
+		// observationStores(...), the observation twin of cliGraphStore.
+		if !strings.Contains(string(data), "cliGraphStore(") && !strings.Contains(string(data), "observationStores(") {
+			t.Errorf("%s is listed as graph-relocation-routed but never calls cliGraphStore( (or observationStores( for a verify-only door) — did the routing get dropped? A graph read left on the work store returns empty on a migrated city and reports success", name)
 		}
 	}
 }
